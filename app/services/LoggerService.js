@@ -1,3 +1,4 @@
+var cluster = require('cluster');
 var log4js = require('log4js');
 
 var fileAppender = {
@@ -16,21 +17,24 @@ log4js.configure({
 });
 
 var logger = log4js.getLogger();
+var workerId = cluster.isMaster ? 'master' : cluster.isWorker ? cluster.worker.id : 'unknown';
 
 module.exports = function (app) {
 
+	var id = 'worker ' + workerId;
+
 	return {
 		debug: function () {
-			logger.debug(arguments);
+			logger.debug(id, arguments);
 		},
 		error: function() {
-			logger.error(arguments);
+			logger.error(id, arguments);
 		},
 		fatal: function() {
-			logger.fatal(arguments);
+			logger.fatal(id, arguments);
 		},
 		info: function() {
-			logger.info(arguments);
+			logger.info(id, arguments);
 		}
 	}
 };
