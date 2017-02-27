@@ -22,8 +22,29 @@ function _getTagValue(tag) {
     return tag.substring(start, end);
 }
 
+function _parseSection(sectionName, content, options, callback, next) {
+	var containerTagName = '<tpl:render-' + sectionName + '></tpl:render-' + sectionName + '>';
+
+	if(content.indexOf('<tpl:' + sectionName + '>') >= 0) {
+		var scriptsTag = _getTag('tpl:' + sectionName, content);
+        var scripts = _getTagValue(scriptsTag);
+
+		var renderScriptsIndex = content.indexOf(containerTagName);
+
+		content = content.insert(renderScriptsIndex, scripts);
+        content = content.replace(scriptsTag, '');
+
+		_parseSection(sectionName, content, options, callback, next);
+	}
+	else {
+		content = content.replace(containerTagName, '');
+		next(content, options, callback);
+	}
+}
+
 function applyLayout(content, options, callback, next) {
-    if(content.indexOf('<tpl:layout>') >= 0) {
+
+	if(content.indexOf('<tpl:layout>') >= 0) {
         var layoutTag = _getTag('tpl:layout', content);
         var value = _getTagValue(layoutTag);
 
@@ -33,11 +54,11 @@ function applyLayout(content, options, callback, next) {
             if(err) return callback(err);
 
             layoutContent = layoutContent.toString();
-            var bodyTag = _getTag('tpl:render-body', layoutContent);
+            var bodyTag = _getTag('tpl:body', layoutContent);
             layoutContent = layoutContent.replace(bodyTag, content);
             layoutContent = layoutContent.replace(layoutTag, '');
 
-            next(layoutContent, options, callback);
+            applyLayout(layoutContent, options, callback, next);
         });
     }
     else {
@@ -46,33 +67,11 @@ function applyLayout(content, options, callback, next) {
 }
 
 function configureScripts(content, options, callback, next) {
-    if(content.indexOf('<tpl:scripts>') >= 0) {
-        var scriptsTag = _getTag('tpl:scripts', content);
-        var scripts = _getTagValue(scriptsTag);
-
-        content = content.replace('<tpl:render-scripts></tpl:render-scripts>', scripts);
-        content = content.replace(scriptsTag, '');
-    }
-    else {
-        content = content.replace('<tpl:render-scripts></tpl:render-scripts>', '');
-    }
-
-    next(content, options, callback);
+	_parseSection('scripts', content, options, callback, next);
 }
 
 function configureHeader(content, options, callback, next) {
-    if(content.indexOf('<tpl:header>') >= 0) {
-        var headerTag = _getTag('tpl:header', content);
-        var headerContent = _getTagValue(headerTag);
-
-        content = content.replace('<tpl:render-header></tpl:render-header>', headerContent);
-        content = content.replace(headerTag, '');
-    }
-    else {
-        content = content.replace('<tpl:render-header></tpl:render-header>', '');
-    }
-
-    next(content, options, callback);
+	_parseSection('header', content, options, callback, next);
 }
 
 function render(content, options, callback, next) {
@@ -108,4 +107,4 @@ module.exports = function(app) {
 
     app.engine(templateName, engine);
     app.set('view engine', templateName);
-};
+}

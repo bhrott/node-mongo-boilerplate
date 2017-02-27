@@ -46,7 +46,13 @@ module.exports = function () {
 
         // render the error page
         res.status(err.status || 500);
-        res.render('error');
+
+		if(req.xhr) {
+			res.json(err.message);
+		}
+		else {
+			res.render('error');
+		}
 
 		app.services.LoggerService.error(JSON.stringify(err, null, 4));
     });
